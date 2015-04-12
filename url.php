@@ -20,6 +20,12 @@ function normalize_url($url) {
   return join_url($parts);
 }
 
+function get_domain($url) {
+  $host = split_url($url)['host'];
+  $parts = explode('.', $host);
+  return implode('.', array_slice($parts, -2));
+}
+
 $IN_callback = prep_input('callback', 100);
 $IN_url = prep_input('url', 256);
 // inputs sanitized
@@ -31,53 +37,44 @@ $OUT = array(
 ); // output prepared
 
 $IN_url = normalize_url($IN_url);
-$localhost = split_url($IN_url)['host'];
+$domain = get_domain($IN_url);
 
 $result = array(
   'id' => sha1($IN_url),
+  'fingerprint' => '',
   'url' => $IN_url,
   'title' => '',
-  'heading1' => '',
-  'heading2' => '',
-
-  'headings' => array(),
 
   // Links
-  'internal' => array(),
-  'external' => array(),
-  'errors' => array()
+  'errors' => array(),
+  'nav_links' => array(),
+  'nav' => array()
 );
 
 $html = file_get_html($IN_url); // HTML fetched
+$result['fingerprint'] = sha1($html->plaintext);
 $result['title'] = $html->find('title', 0)->plaintext;
 
-foreach($html->find('a') as $element) {
-  $url = url_to_absolute($IN_url, $element->href);
-  if (!$url) { // error
-    array_push($result['errors'], $element->href);
-  } else { // ok
-    $host = split_url($url)['host'];
-    if ($localhost == $host) { // internal
-      array_push($result['internal'], $url);
-    } else { // external
-      array_push($result['external'], $url);
-    }//end if: added valid url
-  }//end if: added url
-}//end for: added all urls
+foreach($html->find('nav') as $nav) {
+  foreach($nav->find('a') as $link) {
+    $url = url_to_absolute($IN_url, $link->href);
+    if (!$url) { // error
+      array_push($result['errors'], $link->href);
+    } else { // maybe
+      $host = get_domain($url);
+      if ($domain == $host && !in_array($url, $result['nav_links'])) { // ok
+        array_push($result['nav_links'], $url);
+        array_push($result['nav'], array(
+          'id' => sha1($url),
+          'url'=> $url,
+          'title'=> $link->plaintext,
+        ));
+      }
+    }//end if: added link
+  }//end for: added all links
+}//end for: added all navs
 
-$result['internal'] = array_unique($result['internal']);
-$result['external'] = array_unique($result['external']);
-$result['errors'] = array_unique($result['errors']);
-// duplicates removed
-
-for($i = 1; $i <= 6; $i++) {
-  $result['headings'][$i] = array();
-  foreach($html->find("h$i") as $element) {
-    $heading = trim($element->plaintext);
-    array_push($result['headings'][$i], $heading);
-    if (empty($result["heading$i"])) { $result["heading$i"] = $heading; }
-  }//end for: added headings
-}//end for: added all heading levels
+$result['errors'] = array_unique($result['errors']);  // duplicates removed
 
 $OUT['data'] = $result;
 $json = json_encode($OUT);
