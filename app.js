@@ -11,11 +11,15 @@ $(function () {
   app.$tmpl_item = $('#results li').remove();
   app.$tmpl_nav = $('#results > nav').remove();
 
-  app.$progress = $('.progress-bar');
+  app.$progress = $('.progress');
 
   // Start the process.
   app.start = function (url) {
     if (url) {
+      $('.show-running, #btn-stop').removeClass('hidden');
+      $('#btn-start, #btn-download').addClass('hidden');
+      $('#url').prop('disabled', true);
+
       $.getJSON('url.php', {url: url}).done(function (data) {
         data = data.data;
         app.add_nav({
@@ -29,12 +33,10 @@ $(function () {
           }],
           depth: 0
         });
-      });
 
-      app.pid = window.setInterval(app.next, 100);
-      app.next(); // immediate
-      $('.show-running, #btn-stop').removeClass('hidden');
-      $('#btn-start, #btn-download').addClass('hidden');
+        app.pid = window.setInterval(app.next, 100);
+        app.next(); // immediate
+      });
     }//end if: started
 
     return app;
@@ -44,6 +46,8 @@ $(function () {
   app.stop = function () {
     $('#btn-stop').addClass('hidden');
     $('#btn-start').removeClass('hidden');
+    $('#url').prop('disabled', false);
+
     if (app.pid) { window.clearInterval(app.pid); }
     app.pid = false;
     app.progress();
@@ -56,10 +60,12 @@ $(function () {
     $('#results nav').remove(); // clear results
     $('.show-running, #btn-stop, #btn-download').addClass('hidden');
     $('#btn-start').removeClass('hidden');
+    $('#url').prop('disabled', false);
 
     app.count = 0;
     app.seen = {};
     app.queue = [];
+    app.progress();
 
     return app;
   };
@@ -145,10 +151,11 @@ $(function () {
 
     var percent = (app.count / total) * 100;
     app.$progress
-      .text(parseInt(percent, 10) + '% (' + app.queue.length + ' left)')
-      .css({width: percent + '%'})
-      .parent()
-        .toggleClass('hidden', 100 === percent);
+      .find('.progress-bar').css({width: percent + '%'}).end()
+      .find('.count')
+        .text(parseInt(percent, 10) + '% (' + app.queue.length + ' left)')
+      .end()
+      .toggleClass('hidden', 100 === percent);
 
     return app;
   };
