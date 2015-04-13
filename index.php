@@ -11,6 +11,19 @@ function prep_input($name, $length=100) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Link Checker by Metaist</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css" />
+    <style>
+      nav {
+        border-bottom: 0.1em solid #ccc;
+        padding-bottom: 1em;
+        margin-bottom: 1em;
+      }
+
+      nav:last-child {
+        border-bottom: 0;
+        padding-bottom: 0;
+        margin-bottom: 0;
+      }
+    </style>
   </head>
   <body>
     <script>
@@ -52,13 +65,15 @@ function prep_input($name, $length=100) {
         </div>
       </form>
       <div id="results" class="hidden show-running">
-        <ul data-bind="children">
-          <li class="csv">
-            <span data-bind="title">Title</span> -
-            <a href="http://example.com" data-bind="url">http://example.com</a>
-            <ul data-bind="children"></ul>
-          </li>
-        </ul>
+        <nav>
+          <strong class="title"></strong>
+          <ul class="items">
+            <li class="csv">
+              <span class="title">Title</span> -
+              <a href="http://example.com" class="url">http://example.com</a>
+            </li>
+          </ul>
+        </nav>
       </div>
     </div>
 

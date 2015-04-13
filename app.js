@@ -8,7 +8,9 @@ $(function () {
   app.seen = {}; // exposed urls (fast lookup)
   app.queue = []; // urls to process
 
-  app.$tmpl = $('#results li').remove(); // result template
+  app.$tmpl_item = $('#results li').remove();
+  app.$tmpl_nav = $('#results > nav').remove();
+
   app.$progress = $('.progress-bar');
 
   // Start the process.
@@ -16,13 +18,16 @@ $(function () {
     if (url) {
       $.getJSON('url.php', {url: url}).done(function (data) {
         data = data.data;
-        app.add({
-            parent: '#results',
+        app.add_nav({
+          parent: '#results',
+          id: 'root',
+          items: [{
             id: data.id,
-            fingerprint: data.fingerprint,
+            hash: data.hash,
             title: data.title,
-            url: data.url,
-            depth: 0
+            url: data.url
+          }],
+          depth: 0
         });
       });
 
@@ -48,7 +53,7 @@ $(function () {
 
   // Reset the process.
   app.reset = function () {
-    $('#results li').remove(); // clear results
+    $('#results nav').remove(); // clear results
     $('.show-running, #btn-stop, #btn-download').addClass('hidden');
     $('#btn-start').removeClass('hidden');
 
@@ -59,32 +64,59 @@ $(function () {
     return app;
   };
 
-  // Add to the queue.
   app.add = function (item) {
+    return item.url ? app.add_url(item) : app.add_nav(item);
+  };
+
+  app.add_url = function (item) {
     if (app.seen[item.url]) { // old
       app.seen[item.url] += 1;
     } else { // new
       app.seen[item.url] = 1;
       app.queue.push(item);
 
-      app.$tmpl.clone()
+      app.$tmpl_item.clone()
         .data('csv', item)
-        .addClass('text-muted url-' + item.id)
-        .find('[data-bind="url"]')
+        .addClass('text-muted item-' + item.id)
+        .addClass('depth-' + item.depth)
+        .find('.url')
           .attr('href', item.url)
           .text(item.url)
         .end()
-        .find('[data-bind="title"]').html(item.title || ' ').end()
-        .appendTo($(item.parent + ' > [data-bind="children"]'));
+        .find('.title').html(item.title || '').end()
+        .appendTo($(item.parent + ' > .items'));
     }//end if: track url
+    return app;
+  };
 
+  app.add_nav = function (item) {
+    if (app.seen[item.id]) { // old
+      app.seen[item.id] += 1;
+    } else { // new
+      app.seen[item.id] = 1;
+
+      var $nav = app.$tmpl_nav.clone()
+        .addClass('item-' + item.id)
+        .addClass('depth-' + item.depth)
+        .find('.title').html(item.title || '').end()
+        .appendTo($(item.parent));
+
+      $.each(item.items, function (i, child) {
+        app.add($.extend(child, {
+          parent: '.item-' + item.id,
+          depth: item.depth
+        }));
+      });
+
+      if (!$nav.find('> .items li').length) { $nav.remove(); } // useless
+    }//end if: add nav
     return app;
   };
 
   // Process next item in queue.
   app.next = function () {
     if (!app.pid) { app.stop(); }
-    if (app.queue.length && app.xhr < 4) {
+    if (app.queue.length && app.xhr < 3) {
       app.process(app.queue.shift());
     }//end if: process next item
 
@@ -130,29 +162,31 @@ $(function () {
       data = data.data;
       app.count += 1;
 
-      if ($('.uid-' + data.fingerprint).length) { // already exists
-        $('.url-' + data.id).remove();
+      if ($('.hash-' + data.hash).length) { // already exists
+        //$('.item-' + data.id).remove();
       } else {
-        $('.url-' + data.id)
-          .addClass('uid-' + data.fingerprint)
+        $('.item-' + data.id)
+          .addClass('hash-' + data.hash)
           .removeClass('text-muted');
 
-        $.each(data.nav, function (i, link) {
-          app.add($.extend(link, {
-            parent: '.url-' + data.id,
+        $.each(data.nav, function (i, nav) {
+          app.add($.extend(nav, {
+            parent: '.item-' + data.id,
             depth: item.depth + 1
           }));
         });
       }
 
       app.progress();
-      if (!app.queue.length) {
+      if (!app.queue.length && !app.xhr) {
         return app.stop().csv();
       }//end if: finished all links
     });
 
     return app;
   };
+
+  // Events //
 
   $('form').submit(function (e) {
     e.preventDefault();
