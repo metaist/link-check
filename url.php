@@ -67,7 +67,7 @@ $result = array(
 );
 
 function process_node($node) {
-  global $IN_url, $DOMAIN, $unique_links;
+  global $IN_url, $HTAGS, $DOMAIN, $unique_links;
   $result = array(
     //'selector' => selector($node),
     'id' => sha1($node->plaintext),
@@ -102,7 +102,7 @@ function process_node($node) {
 
   if (empty($result['title'])) {
     $prev = $node->prev_sibling();
-    if (!empty($prev) && in_array($prev->tag, $HTAGS)) {
+    if ($prev && in_array($prev->tag, $HTAGS)) {
       $result['title'] = trim($prev->plaintext);
     }//end if: found a heading
   }//end if: tried to find a heading
