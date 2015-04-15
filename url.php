@@ -102,7 +102,7 @@ function process_node($node) {
 
   if (empty($result['title'])) {
     $prev = $node->prev_sibling();
-    if ($prev &&  in_array($prev->tag, $HTAGS)) {
+    if (!empty($prev) && in_array($prev->tag, $HTAGS)) {
       $result['title'] = trim($prev->plaintext);
     }//end if: found a heading
   }//end if: tried to find a heading
