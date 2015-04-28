@@ -24,7 +24,8 @@ function url_normalize($url, $stripFragment=false) {
 }
 
 function url_domain($url) {
-  $host = split_url($url)['host'];
+  $host = split_url($url);
+  $host = $host['host'];
   $parts = explode('.', $host);
   return implode('.', array_slice($parts, -2));
 }
@@ -95,7 +96,7 @@ function process_node($node) {
       if ('' == $subresult['title']) {
         $result['items'] = array_merge($result['items'], $subresult['items']);
       } else {
-        $result['items'][] = process_node($child, $depth);
+        $result['items'][] = process_node($child);
       }//end if: merged result up a level
     endswitch;
   endforeach;
